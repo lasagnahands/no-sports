@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "No Sports",
-  "version": "1.3",
+  "version": "1.4",
   "description": "Hides sports posts, links, and pages across the web.",
   "permissions": ["storage", "activeTab"],
   "icons": {

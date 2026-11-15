@@ -55,6 +55,21 @@
     return false;
   }
 
+  // The add-on's own pages (like its GitHub page) talk about sports a lot.
+  // Leave them alone.
+  function isOwnPage() {
+    return /no-?sports/i.test(location.pathname);
+  }
+
+  function clearHidden() {
+    document.querySelectorAll('[' + HIDE_ATTR + ']').forEach((el) => {
+      el.removeAttribute(HIDE_ATTR);
+    });
+    cache = new WeakMap();
+    plainText = new WeakMap();
+    textHidden = new Map();
+  }
+
   function ensureStyle() {
     if (styleTag && styleTag.isConnected) return;
     styleTag = document.createElement('style');
@@ -278,8 +293,10 @@
 
     if (location.href !== lastUrl) {
       lastUrl = location.href;
-      if (urlIsSports(location.href)) showOverlay(); else removeOverlay();
+      clearHidden();
+      if (!isOwnPage() && urlIsSports(location.href)) showOverlay(); else removeOverlay();
     }
+    if (isOwnPage()) return;
     if (overlay) {
       if (!overlay.isConnected) document.documentElement.appendChild(overlay);
       pauseMedia();
@@ -320,12 +337,7 @@
     if (observer) { observer.disconnect(); observer = null; }
     if (timer) { clearTimeout(timer); timer = null; }
     removeOverlay();
-    document.querySelectorAll('[' + HIDE_ATTR + ']').forEach((el) => {
-      el.removeAttribute(HIDE_ATTR);
-    });
-    cache = new WeakMap();
-    plainText = new WeakMap();
-    textHidden = new Map();
+    clearHidden();
   }
 
   function apply(saved) {

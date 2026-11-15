@@ -138,8 +138,12 @@ var NOSPORTS = (() => {
     return gameRegex.test(text) || recordRegex.test(text);
   }
 
+  // The add-on's own name is not sports.
+  const ownName = /no[\s-]?sports/gi;
+
   function isSports(text, regex) {
     if (!text) return false;
+    text = text.replace(ownName, ' ');
     return regex.test(text) || nicknameMatch(text);
   }
 
