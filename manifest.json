@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "No Sports",
-  "version": "1.4",
-  "description": "Hides sports posts, links, and pages across the web.",
+  "version": "1.5",
+  "description": "Hides sports content on X and Reddit, and on any other site you choose.",
   "permissions": ["storage", "activeTab"],
   "icons": {
     "16": "icon16.png",

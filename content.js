@@ -5,7 +5,7 @@
   'use strict';
 
   const L = NOSPORTS;
-  const DEFAULTS = { enabled: true, extraWords: [], offSites: [] };
+  const DEFAULTS = { enabled: true, extraWords: [], sites: L.defaultSites };
   const HIDE_ATTR = 'data-nosports-hidden';
   const ALLOW_KEY = 'nosports-show-anyway';
   const host = location.hostname.replace(/^www\./, '');
@@ -20,7 +20,7 @@
     '[contenteditable="true"], [' + HIDE_ATTR + ']';
 
   let settings = { ...DEFAULTS };
-  let regex = L.buildRegex([]);
+  let matcher = L.build([]);
   let cache = new WeakMap();
   let plainText = new WeakMap();
   let textHidden = new Map();
@@ -50,7 +50,7 @@
     const parts = u.pathname.toLowerCase().split('/').filter(Boolean);
     if (parts.includes('sports') || parts.includes('sport')) return true;
     if (/(^|\.)reddit\.com$/.test(u.hostname) && parts[0] === 'r' && parts[1]) {
-      if (regex.test(parts[1])) return true;
+      if (matcher.hasTerm(parts[1])) return true;
     }
     return false;
   }
@@ -145,15 +145,19 @@
   function check(el) {
     const isLink = el.tagName === 'A';
     const full = el.textContent || '';
-    let text = readText(el);
+    const ownText = readText(el);
+    let text = ownText;
     const label = el.getAttribute('aria-label');
     if (label) text += ' ' + label;
+    let subreddit = '';
     if (el.tagName === 'SHREDDIT-POST') {
-      text += ' ' + (el.getAttribute('post-title') || '') +
-        ' ' + (el.getAttribute('subreddit-prefixed-name') || '');
+      text += ' ' + (el.getAttribute('post-title') || '');
+      subreddit = el.getAttribute('subreddit-prefixed-name') || '';
+    } else if (el.classList.contains('thing')) {
+      subreddit = el.getAttribute('data-subreddit') || '';
     }
     const href = isLink ? (el.getAttribute('href') || '') : '';
-    const key = text + '|' + href;
+    const key = text + '|' + href + '|' + subreddit;
 
     const prev = cache.get(el);
     if (prev && prev.key === key) return;
@@ -161,10 +165,15 @@
     let match;
     if (!isLink && el.matches(L.boxes)) {
       // A small side box (like the NFL box on X): judge it by how it starts.
-      match = full.length < 800 && L.isSports(text.slice(0, 120), regex);
+      match = full.length < 800 && matcher.isSports(text.slice(0, 120));
+    } else if (subreddit && matcher.hasTerm(subreddit)) {
+      // A post inside a sports subreddit.
+      match = true;
     } else {
-      match = L.isSports(text, regex);
-      if (!match && isLink && href && href[0] !== '#') match = urlIsSports(href);
+      match = matcher.isSports(text);
+      if (!match && isLink) {
+        match = matcher.isLabel(ownText) || (href && href[0] !== '#' && urlIsSports(href));
+      }
     }
 
     // Do not hide typing areas or big containers that hold many posts.
@@ -210,7 +219,8 @@
 
     // 1. If a small box STARTS with the sports word (like a box titled "NFL"),
     //    the whole box is about sports.
-    while ((p = smallParent(cur, 500)) && p.textContent.trimStart().startsWith(word)) {
+    while (!cur.matches(L.cards) && (p = smallParent(cur, 500)) &&
+           p.textContent.trimStart().startsWith(word)) {
       cur = p;
       path.push(cur);
     }
@@ -268,7 +278,8 @@
       if (plainText.get(node) === raw) continue;
 
       const word = raw.trim();
-      if (word.length < 2 || word.length > 80 || !L.isSports(word, regex)) {
+      if (word.length < 2 || word.length > 80 ||
+          !(matcher.isSports(word) || matcher.isLabel(word))) {
         plainText.set(node, raw);   // not sports, no need to look again
         continue;
       }
@@ -342,9 +353,11 @@
 
   function apply(saved) {
     settings = { ...DEFAULTS, ...saved };
-    regex = L.buildRegex(settings.extraWords);
+    matcher = L.build(settings.extraWords);
     stop();
-    const off = !settings.enabled || settings.offSites.includes(host) || shownAnyway();
+    // Only runs on the sites in the list (X and Reddit to start with).
+    const onList = settings.sites.some((s) => host === s || host.endsWith('.' + s));
+    const off = !settings.enabled || !onList || shownAnyway();
     if (!off) start();
   }
 

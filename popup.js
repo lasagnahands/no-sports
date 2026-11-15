@@ -1,14 +1,20 @@
-// No Sports popup: the on/off switch, per-site switch, and extra words box.
+// No Sports popup: the on/off switch, the "run on this site" switch,
+// the list of sites, and the extra words box.
 
 (() => {
   'use strict';
 
-  const DEFAULTS = { enabled: true, extraWords: [], offSites: [] };
+  const DEFAULTS = {
+    enabled: true,
+    extraWords: [],
+    sites: ['x.com', 'twitter.com', 'reddit.com']
+  };
 
   const enabledBox = document.getElementById('enabled');
-  const offSiteBox = document.getElementById('offSite');
+  const onSiteBox = document.getElementById('onSite');
   const siteRow = document.getElementById('siteRow');
   const siteName = document.getElementById('siteName');
+  const siteList = document.getElementById('siteList');
   const extraBox = document.getElementById('extra');
   const savedNote = document.getElementById('saved');
 
@@ -17,14 +23,26 @@
   let saveTimer = null;
   let noteTimer = null;
 
+  // True when a saved site covers this page ("reddit.com" covers "old.reddit.com").
+  function covers(site, h) {
+    return h === site || h.endsWith('.' + site);
+  }
+
   function showSaved() {
     savedNote.textContent = 'Saved';
     clearTimeout(noteTimer);
     noteTimer = setTimeout(() => { savedNote.textContent = ''; }, 1200);
   }
 
+  function showSites() {
+    siteList.textContent = settings.sites.length
+      ? settings.sites.join(', ')
+      : 'None yet. Open a site and tick the box above.';
+  }
+
   function save() {
     chrome.storage.sync.set(settings, showSaved);
+    showSites();
   }
 
   function readWords() {
@@ -39,10 +57,10 @@
     save();
   });
 
-  offSiteBox.addEventListener('change', () => {
-    const list = settings.offSites.filter((s) => s !== host);
-    if (offSiteBox.checked) list.push(host);
-    settings.offSites = list;
+  onSiteBox.addEventListener('change', () => {
+    const list = settings.sites.filter((s) => !covers(s, host));
+    if (onSiteBox.checked) list.push(host);
+    settings.sites = list;
     save();
   });
 
@@ -58,6 +76,7 @@
     settings = { ...DEFAULTS, ...saved };
     enabledBox.checked = settings.enabled;
     extraBox.value = settings.extraWords.join('\n');
+    showSites();
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       let url = null;
@@ -68,7 +87,7 @@
       }
       host = url.hostname.replace(/^www\./, '');
       siteName.textContent = host;
-      offSiteBox.checked = settings.offSites.includes(host);
+      onSiteBox.checked = settings.sites.some((s) => covers(s, host));
     });
   });
 })();

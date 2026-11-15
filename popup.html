@@ -55,6 +55,12 @@
       font-size: 12px;
       margin: 0 0 6px;
     }
+    #siteList {
+      color: #111111;
+      font-size: 13px;
+      margin: 0;
+      word-break: break-word;
+    }
     textarea {
       width: 100%;
       height: 90px;
@@ -87,9 +93,12 @@
   </label>
 
   <label class="row light" id="siteRow">
-    <input type="checkbox" id="offSite">
-    <span>Turn off on <span class="site" id="siteName">this site</span></span>
+    <input type="checkbox" id="onSite">
+    <span>Run on <span class="site" id="siteName">this site</span></span>
   </label>
+
+  <span class="field-label">Sites it runs on</span>
+  <p id="siteList"></p>
 
   <label class="field-label" for="extra">Extra words to block</label>
   <p class="hint">One per line. Good for teams or names that still get through.</p>
